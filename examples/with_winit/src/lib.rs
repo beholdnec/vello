@@ -104,6 +104,20 @@ const AA_CONFIGS: [AaConfig; 3] = [AaConfig::Area, AaConfig::Msaa8, AaConfig::Ms
 // Hard code to only one on Android whilst we are working on startup speed
 const AA_CONFIGS: [AaConfig; 1] = [AaConfig::Area];
 
+// A floating tigey-wigey
+#[derive(Default)]
+struct Giest {
+    origin_position: Vec2,
+    position_amplitude: Vec2,
+    position_freq: Vec2,
+    origin_rotation: f64,
+    rotation_amplitude: f64,
+    rotation_freq: f64,
+    
+    position: Vec2,
+    rotation: f64,
+}
+
 struct VelloApp<'s> {
     context: RenderContext,
     renderers: Vec<Option<Renderer>>,
@@ -164,6 +178,22 @@ struct VelloApp<'s> {
     modifiers: ModifiersState,
 
     debug: DebugLayers,
+
+    giests: Vec<Giest>,
+}
+
+impl VelloApp<'_> {
+    fn update(&mut self, ticks: Duration) {
+        let new_ticks = self.frame_start_time + ticks;
+        let total_time = (new_ticks - self.start).as_secs_f64();
+        for giest in self.giests.iter_mut() {
+            giest.position = giest.origin_position + Vec2::new(
+                giest.position_amplitude.x * f64::sin(giest.position_freq.x * total_time),
+                giest.position_amplitude.y * f64::cos(giest.position_freq.y * total_time)
+            );
+            giest.rotation = giest.origin_rotation + giest.rotation_amplitude * f64::sin(giest.rotation_freq * total_time);
+        }
+    }
 }
 
 impl<'s> ApplicationHandler<UserEvent> for VelloApp<'s> {
@@ -438,10 +468,13 @@ impl<'s> ApplicationHandler<UserEvent> for VelloApp<'s> {
                 self.prior_position = Some(position);
             }
             WindowEvent::RedrawRequested => {
+                let ticks = Instant::now() - self.frame_start_time;
+                self.update(ticks);
+
                 let _rendering_span = tracing::trace_span!("Actioning Requested Redraw").entered();
                 let encoding_span = tracing::trace_span!("Encoding scene").entered();
 
-                render_state.window.request_redraw();
+                self.state.as_mut().unwrap().window.request_redraw();
 
                 let Some(RenderState { surface, window }) = &self.state else {
                     return;
@@ -489,15 +522,21 @@ impl<'s> ApplicationHandler<UserEvent> for VelloApp<'s> {
                     antialiasing_method,
                 };
                 self.scene.reset();
+
+                for giest in self.giests.iter() {
                 let mut transform = self.transform;
-                if let Some(resolution) = scene_params.resolution {
-                    // Automatically scale the rendering to fill as much of the window as possible
-                    // TODO: Apply svg view_box, somehow
-                    let factor = Vec2::new(width as f64, height as f64);
-                    let scale_factor = (factor.x / resolution.x).min(factor.y / resolution.y);
-                    transform *= Affine::scale(scale_factor);
+                    if let Some(resolution) = scene_params.resolution {
+                        // Automatically scale the rendering to fill as much of the window as possible
+                        // TODO: Apply svg view_box, somehow
+                        let factor = Vec2::new(width as f64, height as f64);
+                        let scale_factor = (factor.x / resolution.x).min(factor.y / resolution.y);
+                        transform *= Affine::scale(scale_factor);
+                    }
+                    transform *= Affine::translate(giest.position);
+                    transform *= Affine::rotate(giest.rotation);
+                    self.scene.append(&self.fragment, Some(transform));
                 }
-                self.scene.append(&self.fragment, Some(transform));
+
                 if self.stats_shown {
                     snapshot.draw_layer(
                         &mut self.scene,
@@ -746,6 +785,45 @@ fn run(
         prev_scene_ix: 0,
         modifiers: ModifiersState::default(),
         debug,
+
+        giests: vec![
+            Giest {
+                origin_position: Vec2::new(-50.0, -40.0),
+                position_amplitude: Vec2::new(100.0, 200.0),
+                position_freq: Vec2::new(1.0, 2.0),
+                origin_rotation: 0.0,
+                rotation_amplitude: 2.0,
+                rotation_freq: 2.0,
+                ..Default::default()
+            },
+            Giest {
+                origin_position: Vec2::new(20.0, 30.0),
+                position_amplitude: Vec2::new(150.0, 200.0),
+                position_freq: Vec2::new(2.0, 1.5),
+                origin_rotation: 0.0,
+                rotation_amplitude: 1.0,
+                rotation_freq: 5.0,
+                ..Default::default()
+            },
+            Giest {
+                origin_position: Vec2::new(20.0, -60.0),
+                position_amplitude: Vec2::new(200.0, 300.0),
+                position_freq: Vec2::new(2.0, 1.5),
+                origin_rotation: 0.0,
+                rotation_amplitude: 3.0,
+                rotation_freq: 3.0,
+                ..Default::default()
+            },
+            Giest {
+                origin_position: Vec2::new(-20.0, 60.0),
+                position_amplitude: Vec2::new(90.0, -60.0),
+                position_freq: Vec2::new(3.0, 0.25),
+                origin_rotation: 0.0,
+                rotation_amplitude: 0.5,
+                rotation_freq: 2.0,
+                ..Default::default()
+            },
+        ]
     };
 
     event_loop.run_app(&mut app).expect("run to completion");
