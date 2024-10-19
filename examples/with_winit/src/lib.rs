@@ -811,44 +811,7 @@ fn run(
         modifiers: ModifiersState::default(),
         debug,
 
-        giests: vec![
-            Giest {
-                origin_position: Vec2::new(-50.0, -40.0),
-                position_amplitude: Vec2::new(100.0, 200.0),
-                position_freq: Vec2::new(1.0, 2.0),
-                origin_rotation: 0.0,
-                rotation_amplitude: 2.0,
-                rotation_freq: 2.0,
-                ..Default::default()
-            },
-            Giest {
-                origin_position: Vec2::new(20.0, 30.0),
-                position_amplitude: Vec2::new(150.0, 200.0),
-                position_freq: Vec2::new(2.0, 1.5),
-                origin_rotation: 0.0,
-                rotation_amplitude: 1.0,
-                rotation_freq: 5.0,
-                ..Default::default()
-            },
-            Giest {
-                origin_position: Vec2::new(20.0, -60.0),
-                position_amplitude: Vec2::new(200.0, 300.0),
-                position_freq: Vec2::new(2.0, 1.5),
-                origin_rotation: 0.0,
-                rotation_amplitude: 3.0,
-                rotation_freq: 3.0,
-                ..Default::default()
-            },
-            Giest {
-                origin_position: Vec2::new(-20.0, 60.0),
-                position_amplitude: Vec2::new(90.0, -60.0),
-                position_freq: Vec2::new(3.0, 0.25),
-                origin_rotation: 0.0,
-                rotation_amplitude: 0.5,
-                rotation_freq: 2.0,
-                ..Default::default()
-            },
-        ]
+        giests: Vec::new(),
     };
 
     for _ in 0..128 {
