@@ -33,6 +33,8 @@ use winit::dpi::LogicalSize;
 use winit::event_loop::EventLoop;
 use winit::window::{Window, WindowAttributes};
 
+use rand::Rng;
+
 use vello::wgpu;
 
 #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
@@ -116,6 +118,29 @@ struct Giest {
     
     position: Vec2,
     rotation: f64,
+}
+
+impl Giest {
+    fn random() -> Giest {
+        let mut rng = rand::thread_rng();
+        Giest {
+            origin_position: Vec2::new(
+                rng.gen_range(-1000.0..1000.0),
+                rng.gen_range(-1000.0..1000.0)
+            ),
+            position_amplitude: Vec2::new(
+                rng.gen_range(0.0..1000.0),
+                rng.gen_range(0.0..1000.0)
+            ),
+            position_freq: Vec2::new(
+                rng.gen_range(0.0..5.0),
+                rng.gen_range(0.0..5.0)
+            ),
+            rotation_amplitude: rng.gen_range(0.0..2.0),
+            rotation_freq: rng.gen_range(0.0..8.0),
+            ..Default::default()
+        }
+    }
 }
 
 struct VelloApp<'s> {
@@ -825,6 +850,10 @@ fn run(
             },
         ]
     };
+
+    for _ in 0..128 {
+        app.giests.push(Giest::random());
+    }
 
     event_loop.run_app(&mut app).expect("run to completion");
 }
